@@ -13,13 +13,29 @@ pipeline {
 
         stage('Build') {
             steps {
-                echo 'Building application - webhook test run it ok '
+                echo 'Building application - webhook test'
             }
         }
 
         stage('Test') {
             steps {
                 echo 'Testing application'
+
+                withCredentials([
+                    string(
+                        credentialsId: 'demo-secret',
+                        variable: 'MY_SECRET'
+                    )
+                ]) {
+                    sh '''
+                        if [ -n "$MY_SECRET" ]; then
+                            echo "Credential loaded successfully"
+                        else
+                            echo "Credential is empty"
+                            exit 1
+                        fi
+                    '''
+                }
             }
         }
     }
