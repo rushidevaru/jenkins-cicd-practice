@@ -1,16 +1,15 @@
+
 pipeline {
     agent any
 
     stages {
-	stage('Checkout') {
-   	 steps {
-        	echo 'Checking files downloaded from GitHub'
-        	sh 'pwd'
-        	sh 'ls -la'
-   	 }
-	}
-
-   }
+        stage('Checkout') {
+            steps {
+                echo 'Checking files downloaded from GitHub'
+                sh 'pwd'
+                sh 'ls -la'
+            }
+        }
 
         stage('Build') {
             steps {
@@ -39,3 +38,4 @@ pipeline {
         }
     }
 }
+
