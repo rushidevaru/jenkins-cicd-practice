@@ -29,9 +29,26 @@ pipeline {
                 ]) {
                     sh '''
                         if [ -n "$MY_SECRET" ]; then
-                            echo "Credential loaded successfully"
+                            echo "Secret text credential loaded successfully"
                         else
-                            echo "Credential is empty"
+                            echo "Secret text credential is empty"
+                            exit 1
+                        fi
+                    '''
+                }
+
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'demo-username-password',
+                        usernameVariable: 'DEMO_USERNAME',
+                        passwordVariable: 'DEMO_PASSWORD'
+                    )
+                ]) {
+                    sh '''
+                        if [ -n "$DEMO_USERNAME" ] && [ -n "$DEMO_PASSWORD" ]; then
+                            echo "Username and password credentials loaded successfully"
+                        else
+                            echo "Username or password is empty"
                             exit 1
                         fi
                     '''
