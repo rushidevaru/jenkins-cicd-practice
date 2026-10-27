@@ -80,6 +80,30 @@ pipeline {
                 }
             }
         }
+
+        stage('Connect to Target EC2') {
+            steps {
+                echo 'Connecting to the second EC2 instance'
+
+                withCredentials([
+                    sshUserPrivateKey(
+                        credentialsId: 'demo-ssh-key',
+                        keyFileVariable: 'SSH_KEY',
+                        usernameVariable: 'SSH_USER'
+                    )
+                ]) {
+                    sh '''
+                        ssh \
+                            -o BatchMode=yes \
+                            -o ConnectTimeout=10 \
+                            -o StrictHostKeyChecking=accept-new \
+                            -i "$SSH_KEY" \
+                            "$SSH_USER@15.252.242.234" \
+                            'echo "SSH connection successful"; whoami; hostname'
+                    '''
+                }
+            }
+        }
     }
 
     post {
