@@ -17,9 +17,9 @@ pipeline {
             }
         }
 
-        stage('Test') {
+        stage('Test Credentials') {
             steps {
-                echo 'Testing application'
+                echo 'Testing Secret Text credential'
 
                 withCredentials([
                     string(
@@ -37,6 +37,8 @@ pipeline {
                     '''
                 }
 
+                echo 'Testing Username with Password credential'
+
                 withCredentials([
                     usernamePassword(
                         credentialsId: 'demo-username-password',
@@ -51,6 +53,29 @@ pipeline {
                             echo "Username or password is empty"
                             exit 1
                         fi
+                    '''
+                }
+            }
+        }
+
+        stage('SSH Connection Test') {
+            steps {
+                echo 'Testing SSH connection using Jenkins credentials'
+
+                withCredentials([
+                    sshUserPrivateKey(
+                        credentialsId: 'demo-ssh-key',
+                        keyFileVariable: 'SSH_KEY',
+                        usernameVariable: 'SSH_USER'
+                    )
+                ]) {
+                    sh '''
+                        ssh \
+                            -o BatchMode=yes \
+                            -o StrictHostKeyChecking=accept-new \
+                            -i "$SSH_KEY" \
+                            "$SSH_USER@localhost" \
+                            'whoami && hostname'
                     '''
                 }
             }
