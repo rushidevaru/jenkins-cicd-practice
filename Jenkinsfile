@@ -104,6 +104,30 @@ pipeline {
                 }
             }
         }
+
+        stage('Remote File Creation') {
+            steps {
+                echo 'Creating a file on the target EC2 instance'
+
+                withCredentials([
+                    sshUserPrivateKey(
+                        credentialsId: 'demo-ssh-key',
+                        keyFileVariable: 'SSH_KEY',
+                        usernameVariable: 'SSH_USER'
+                    )
+                ]) {
+                    sh '''
+                        ssh \
+                            -o BatchMode=yes \
+                            -o ConnectTimeout=10 \
+                            -o StrictHostKeyChecking=accept-new \
+                            -i "$SSH_KEY" \
+                            "$SSH_USER@15.252.242.234" \
+                            'printf "%s\\n" "File created remotely by Jenkins build" > /home/ubuntu/jenkins-deployment.txt && cat /home/ubuntu/jenkins-deployment.txt'
+                    '''
+                }
+            }
+        }
     }
 
     post {
