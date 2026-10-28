@@ -5,62 +5,22 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                echo 'Checking files downloaded from GitHub'
-                sh 'pwd'
-                sh 'ls -la'
+                echo 'Checking out website code from GitHub'
+                sh 'pwd'                     // Show the Jenkins workspace
+                sh 'ls -la'                  // List downloaded project files
             }
         }
 
         stage('Build') {
             steps {
-                echo 'Building application - webhook test'
+                echo 'Preparing website for deployment'
+                sh 'test -f index.html'      // Confirm the website file exists
             }
         }
 
-        stage('Test Credentials') {
+        stage('Deploy Website to Nginx') {
             steps {
-                echo 'Testing Secret Text credential'
-
-                withCredentials([
-                    string(
-                        credentialsId: 'demo-secret',
-                        variable: 'MY_SECRET'
-                    )
-                ]) {
-                    sh '''
-                        if [ -n "$MY_SECRET" ]; then
-                            echo "Secret text credential loaded successfully"
-                        else
-                            echo "Secret text credential is empty"
-                            exit 1
-                        fi
-                    '''
-                }
-
-                echo 'Testing Username with Password credential'
-
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'demo-username-password',
-                        usernameVariable: 'DEMO_USERNAME',
-                        passwordVariable: 'DEMO_PASSWORD'
-                    )
-                ]) {
-                    sh '''
-                        if [ -n "$DEMO_USERNAME" ] && [ -n "$DEMO_PASSWORD" ]; then
-                            echo "Username and password credentials loaded successfully"
-                        else
-                            echo "Username or password is empty"
-                            exit 1
-                        fi
-                    '''
-                }
-            }
-        }
-
-        stage('SSH Connection Test') {
-            steps {
-                echo 'Testing SSH connection using Jenkins credentials'
+                echo 'Deploying website to target EC2'
 
                 withCredentials([
                     sshUserPrivateKey(
@@ -70,60 +30,17 @@ pipeline {
                     )
                 ]) {
                     sh '''
-                        ssh \
-                            -o BatchMode=yes \
+                        set -e
+
+                        scp -i "$SSH_KEY" \
                             -o StrictHostKeyChecking=accept-new \
-                            -i "$SSH_KEY" \
-                            "$SSH_USER@localhost" \
-                            'whoami && hostname'
-                    '''
-                }
-            }
-        }
+                            index.html \
+                            "$SSH_USER@3.109.123.226:/tmp/index.html"
 
-        stage('Connect to Target EC2') {
-            steps {
-                echo 'Connecting to the second EC2 instance'
-
-                withCredentials([
-                    sshUserPrivateKey(
-                        credentialsId: 'demo-ssh-key',
-                        keyFileVariable: 'SSH_KEY',
-                        usernameVariable: 'SSH_USER'
-                    )
-                ]) {
-                    sh '''
-                        ssh \
-                            -o BatchMode=yes \
-                            -o ConnectTimeout=10 \
+                        ssh -i "$SSH_KEY" \
                             -o StrictHostKeyChecking=accept-new \
-                            -i "$SSH_KEY" \
-                            "$SSH_USER@15.252.242.234" \
-                            'echo "SSH connection successful"; whoami; hostname'
-                    '''
-                }
-            }
-        }
-
-        stage('Remote File Creation') {
-            steps {
-                echo 'Creating a file on the target EC2 instance'
-
-                withCredentials([
-                    sshUserPrivateKey(
-                        credentialsId: 'demo-ssh-key',
-                        keyFileVariable: 'SSH_KEY',
-                        usernameVariable: 'SSH_USER'
-                    )
-                ]) {
-                    sh '''
-                        ssh \
-                            -o BatchMode=yes \
-                            -o ConnectTimeout=10 \
-                            -o StrictHostKeyChecking=accept-new \
-                            -i "$SSH_KEY" \
-                            "$SSH_USER@15.252.242.234" \
-                            'printf "%s\\n" "File created remotely by Jenkins build" > /home/ubuntu/jenkins-deployment.txt && cat /home/ubuntu/jenkins-deployment.txt'
+                            "$SSH_USER@3.109.123.226" \
+                            'sudo install -o root -g root -m 644 /tmp/index.html /var/www/html/index.html && rm /tmp/index.html'
                     '''
                 }
             }
@@ -132,11 +49,11 @@ pipeline {
 
     post {
         success {
-            echo 'Pipeline completed successfully!'
+            echo 'Website deployment completed successfully!'
         }
 
         failure {
-            echo 'Pipeline failed. Check the logs!'
+            echo 'Deployment failed. Check the Console Output.'
         }
 
         always {
